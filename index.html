@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#101328" />
+  <title>Lucky Name Picker</title>
+  <style>
+    :root{color-scheme:dark;--bg:#101328;--panel:#1c203d;--line:#34395f;--text:#f6f5ff;--muted:#b4b8d7;--accent:#a997ff;--pink:#ff78bf}
+    *{box-sizing:border-box}body{margin:0;min-height:100svh;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--text);background:radial-gradient(ellipse at 50% 0%,#34346f 0%,#181b39 48%,var(--bg) 100%);display:grid;place-items:center;padding:24px 16px}
+    main{width:min(100%,520px);text-align:center}h1{font-size:clamp(1.9rem,7vw,2.8rem);margin:0 0 8px;letter-spacing:-.04em}.sub{color:var(--muted);margin:0 0 25px;font-size:.97rem}
+    .wheel-wrap{position:relative;width:min(80vw,350px);aspect-ratio:1;margin:0 auto 27px;filter:drop-shadow(0 20px 35px #0006)}
+    .wheel{height:100%;width:100%;border-radius:50%;border:7px solid #eeeaff;position:relative;overflow:hidden;transition:transform 5.2s cubic-bezier(.12,.78,.13,1);background:conic-gradient(from -30deg,#ff83bb 0deg 60deg,#8e8afb 60deg 120deg,#5bcecf 120deg 180deg,#ffa76c 180deg 240deg,#b993ff 240deg 300deg,#6dcf9f 300deg 360deg)}
+    .wheel-label{position:absolute;top:50%;left:50%;height:50%;width:0;transform-origin:bottom center;pointer-events:none}.wheel-label span{position:absolute;bottom:58%;left:0;transform:translate(-50%,50%);font-size:clamp(11px,3vw,15px);font-weight:800;white-space:nowrap;text-shadow:0 1px 2px #0008}
+    .hub{position:absolute;inset:43%;border-radius:50%;background:#fff;box-shadow:0 0 0 6px #34325f,0 0 18px #0007;pointer-events:none}.pointer{position:absolute;z-index:3;top:-14px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:29px solid #fff;filter:drop-shadow(0 3px 2px #0005)}
+    button{border:0;border-radius:16px;padding:15px 22px;font:800 1.08rem inherit;cursor:pointer;touch-action:manipulation;transition:transform .15s,opacity .15s}button:active{transform:scale(.97)}button:focus-visible{outline:3px solid white;outline-offset:3px}button:disabled{opacity:.6;cursor:wait}.spin{background:linear-gradient(110deg,var(--pink),var(--accent));color:#15142b;width:min(100%,300px);font-size:1.13rem;box-shadow:0 9px 26px #9f7bff44}
+    .result{margin:20px auto 0;min-height:62px;display:grid;place-items:center;font-weight:750;font-size:1.2rem}.result strong{font-size:1.6rem;color:#ffb6dc;display:block}.card{background:#ffffff0c;border:1px solid #ffffff25;border-radius:20px;padding:19px;margin-top:20px;text-align:left}.card h2{font-size:1rem;margin:0 0 12px}.names{display:flex;flex-wrap:wrap;gap:9px}.chip{background:#ffffff14;border:1px solid #ffffff20;border-radius:99px;padding:8px 13px;font-size:.87rem;color:#e8e7ff}.hint{font-size:.76rem;color:var(--muted);margin:16px 0 0}@media(prefers-reduced-motion:reduce){.wheel{transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>✨ Lucky Name Picker</h1>
+  <p class="sub">Six names. One lucky winner. Spin to find out!</p>
+  <div class="wheel-wrap" aria-label="Wheel of six names">
+    <div class="pointer" aria-hidden="true"></div>
+    <div class="wheel" id="wheel" aria-hidden="true"></div>
+    <div class="hub" aria-hidden="true"></div>
+  </div>
+  <button class="spin" id="spin" type="button">🎡 Spin the Wheel</button>
+  <div class="result" id="result" role="status" aria-live="polite">Ready to pick a name?</div>
+  <section class="card" aria-label="Participants"><h2>👥 Participants (6)</h2><div class="names" id="names"></div></section>
+  <p class="hint">Each name has an equal chance on every spin.</p>
+</main>
+<script>
+  const names = ['Tarun', 'Nitya', 'Nandini', 'Aparna', 'Akshay', 'Pallav'];
+  const wheel = document.getElementById('wheel');
+  const spinButton = document.getElementById('spin');
+  const result = document.getElementById('result');
+  document.getElementById('names').replaceChildren(...names.map(name=>{const el=document.createElement('span');el.className='chip';el.textContent=name;return el;}));
+  // Each colored slice has a center at 0°, 60°, 120° etc., measured clockwise from top.
+  names.forEach((name,i)=>{const label=document.createElement('div');label.className='wheel-label';label.style.transform=`translate(-50%,-100%) rotate(${i*60}deg)`;const text=document.createElement('span');text.textContent=name;label.append(text);wheel.append(label);});
+  let rotation=0, spinning=false;
+  spinButton.addEventListener('click',()=>{
+    if(spinning)return;
+    spinning=true;spinButton.disabled=true;result.textContent='🎲 Picking a lucky name…';
+    const index=Math.floor(Math.random()*names.length);
+    // Small random offset stays safely inside the chosen slice.
+    const jitter=(Math.random()-.5)*32;
+    const target=(360-index*60+jitter)%360;
+    const current=((rotation%360)+360)%360;
+    const delta=(target-current+360)%360;
+    rotation+=360*(5+Math.floor(Math.random()*3))+delta;
+    wheel.style.transform=`rotate(${rotation}deg)`;
+    const done=()=>{spinning=false;spinButton.disabled=false;spinButton.textContent='🔄 Spin Again';result.innerHTML='🎉 The lucky name is <strong></strong>!';result.querySelector('strong').textContent=names[index];};
+    if(matchMedia('(prefers-reduced-motion: reduce)').matches){setTimeout(done,50);}else{wheel.addEventListener('transitionend',done,{once:true});}
+  });
+</script>
+</body>
+</html>
